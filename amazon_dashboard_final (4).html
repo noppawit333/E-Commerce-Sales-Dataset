@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon India Sales Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      background-color: #232f3e;
+      color: white;
+      margin: 0;
+      padding: 20px 30px;
+      font-size: 20px;
+    }
+
+    h1 span {
+      font-size: 13px;
+      color: #aaa;
+      margin-left: 10px;
+    }
+
+    .filter-area {
+      background: white;
+      padding: 12px 30px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-area label {
+      font-size: 14px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .filter-area button {
+      padding: 6px 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .filter-area button.active {
+      background-color: #ff9900;
+      color: white;
+      border-color: #ff9900;
+    }
+
+    .content {
+      padding: 24px 30px;
+    }
+
+    /* KPI cards */
+    .kpi-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-box {
+      background: white;
+      border-radius: 8px;
+      padding: 18px 20px;
+      flex: 1;
+      border-top: 4px solid #ff9900;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .kpi-box .num {
+      font-size: 26px;
+      font-weight: bold;
+      color: #232f3e;
+    }
+
+    .kpi-box .label {
+      font-size: 13px;
+      color: #777;
+      margin-top: 4px;
+    }
+
+    /* Chart section */
+    .chart-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .chart-box {
+      background: white;
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    .chart-box h3 {
+      margin: 0 0 14px 0;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .chart-box.big   { flex: 2; }
+    .chart-box.small { flex: 1; }
+    .chart-box.full  { flex: 1; width: 100%; }
+
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 12px;
+      color: #aaa;
+    }
+
+    /* --- มือถือ --- */
+    @media (max-width: 600px) {
+
+      h1 {
+        font-size: 15px;
+        padding: 14px 16px;
+      }
+
+      h1 span { display: none; }
+
+      .filter-area {
+        padding: 10px 16px;
+        flex-wrap: wrap;
+      }
+
+      .filter-area button {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+
+      .content {
+        padding: 14px 16px;
+      }
+
+      /* KPI เรียง 2 คอลัมน์ */
+      .kpi-row {
+        flex-wrap: wrap;
+      }
+
+      .kpi-box {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 0;
+      }
+
+      .kpi-box .num {
+        font-size: 20px;
+      }
+
+      /* กราฟเรียงแนวตั้ง */
+      .chart-row {
+        flex-direction: column;
+      }
+
+      .chart-box.big,
+      .chart-box.small,
+      .chart-box.full {
+        flex: none;
+        width: 100%;
+      }
+
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Amazon India — Sales Dashboard <span>เม.ย. – มิ.ย. 2565</span></h1>
+
+  <!-- ปุ่มเลือกเดือน -->
+  <div class="filter-area">
+    <label>เลือกเดือน :</label>
+    <button class="active" onclick="changeMonth('all', this)">ทั้งหมด</button>
+    <button onclick="changeMonth('apr', this)">เม.ย. 65</button>
+    <button onclick="changeMonth('may', this)">พ.ค. 65</button>
+    <button onclick="changeMonth('jun', this)">มิ.ย. 65</button>
+  </div>
+
+  <div class="content">
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="num" id="kpi-revenue">₹78.6M</div>
+        <div class="label">รายได้รวม</div>
+      </div>
+      <div class="kpi-box">
+        <div class="num" id="kpi-orders">128,975</div>
+        <div class="label">คำสั่งซื้อทั้งหมด</div>
+      </div>
+      <div class="kpi-box">
+        <div class="num" id="kpi-aov">₹649</div>
+        <div class="label">มูลค่าเฉลี่ยต่อออเดอร์</div>
+      </div>
+      <div class="kpi-box">
+        <div class="num" id="kpi-cancel">14.2%</div>
+        <div class="label">อัตราการยกเลิก</div>
+      </div>
+    </div>
+
+    <!-- กราฟแถวบน -->
+    <div class="chart-row">
+      <div class="chart-box big">
+        <h3>ออเดอร์รายวัน</h3>
+        <canvas id="chart-daily" height="110"></canvas>
+      </div>
+      <div class="chart-box small">
+        <h3>หมวดสินค้าขายดี (ออเดอร์)</h3>
+        <canvas id="chart-cat" height="110"></canvas>
+      </div>
+    </div>
+
+    <!-- กราฟแถวล่าง -->
+    <div class="chart-row">
+      <div class="chart-box full">
+        <h3>ออเดอร์แยกตามสถานะ</h3>
+        <canvas id="chart-status" height="60"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>ข้อมูล Amazon India · เม.ย. – มิ.ย. 2565</footer>
+
+<script>
+
+  // ข้อมูลแต่ละเดือน
+  var data = {
+    all: {
+      revenue: '₹78.6M', orders: '128,975', aov: '₹649', cancel: '14.2%',
+      catLabels: ['Set', 'Kurta', 'Western Dress', 'Top', 'Ethnic Dress', 'Blouse', 'Bottom'],
+      catData:   [50284, 49877, 15500, 10622, 1159, 926, 440],
+      statusLabels: ['Shipped', 'Delivered', 'Cancelled', 'Returned', 'Pending'],
+      statusData:   [77804, 28769, 18332, 1953, 658]
+    },
+    apr: {
+      revenue: '₹28.8M', orders: '43,240', aov: '₹667', cancel: '13.8%',
+      catLabels: ['Set', 'Kurta', 'Western Dress', 'Top', 'Ethnic Dress', 'Blouse', 'Bottom'],
+      catData:   [17200, 17050, 5410, 3720, 420, 320, 120],
+      statusLabels: ['Shipped', 'Delivered', 'Cancelled', 'Returned', 'Pending'],
+      statusData:   [26890, 9240, 5967, 710, 433]
+    },
+    may: {
+      revenue: '₹26.2M', orders: '46,830', aov: '₹560', cancel: '15.1%',
+      catLabels: ['Set', 'Kurta', 'Western Dress', 'Top', 'Ethnic Dress', 'Blouse', 'Bottom'],
+      catData:   [18420, 18260, 5680, 3910, 440, 340, 160],
+      statusLabels: ['Shipped', 'Delivered', 'Cancelled', 'Returned', 'Pending'],
+      statusData:   [28190, 10370, 7071, 750, 449]
+    },
+    jun: {
+      revenue: '₹23.4M', orders: '38,905', aov: '₹602', cancel: '13.6%',
+      catLabels: ['Set', 'Kurta', 'Western Dress', 'Top', 'Ethnic Dress', 'Blouse', 'Bottom'],
+      catData:   [14664, 14567, 4410, 2992, 299, 266, 160],
+      statusLabels: ['Shipped', 'Delivered', 'Cancelled', 'Returned', 'Pending'],
+      statusData:   [23724, 9159, 5294, 493, 235]
+    }
+  }
+
+  // ออเดอร์รายวัน 90 วัน
+  var allDailyOrders = [1470,1555,1691,1465,1520,1388,1602,1733,1644,1598,1412,1389,1456,1603,1744,1512,1489,1623,1534,1478,1590,1712,1445,1368,1543,1467,1623,1501,1489,1435,1623,1589,1701,1534,1467,1523,1589,1634,1478,1556,1623,1545,1489,1534,1601,1556,1489,1423,1389,1456,1534,1589,1645,1512,1467,1423,1534,1578,1623,1489,1534,1445,1389,1456,1512,1578,1634,1512,1467,1423,1389,1345,1301,1267,1234,1201,1456,1234,1189,1145,1189,1234,1178,1145,1112,1078,1234,1201,1067,1026]
+
+  // สร้าง label วันที่
+  var allDailyLabels = []
+  for (var i = 0; i < 90; i++) {
+    var d = new Date('2022-04-01')
+    d.setDate(d.getDate() + i)
+    allDailyLabels.push(d.toISOString().slice(5, 10))
+  }
+
+  // สีกราฟ
+  var barColors = ['#ff9900','#146eb4','#2e7d32','#6a1b9a','#e65100','#b71c1c','#00838f']
+  var statusColors = ['#2e7d32','#146eb4','#b71c1c','#e65100','#999']
+
+  // สร้างกราฟทั้ง 3
+  var chartDaily = new Chart(document.getElementById('chart-daily'), {
+    type: 'line',
+    data: { labels: allDailyLabels, datasets: [{ data: allDailyOrders, borderColor: '#ff9900', backgroundColor: 'rgba(255,153,0,0.1)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 6 } } } }
+  })
+
+  var chartCat = new Chart(document.getElementById('chart-cat'), {
+    type: 'bar',
+    data: { labels: data.all.catLabels, datasets: [{ data: data.all.catData, backgroundColor: barColors, borderRadius: 4, borderWidth: 0 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: function(v) { return (v/1000).toFixed(0) + 'K' } } } } }
+  })
+
+  var chartStatus = new Chart(document.getElementById('chart-status'), {
+    type: 'bar',
+    data: { labels: data.all.statusLabels, datasets: [{ data: data.all.statusData, backgroundColor: statusColors, borderRadius: 4, borderWidth: 0 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } } } }
+  })
+
+  // เมื่อกดเลือกเดือน
+  function changeMonth(month, btn) {
+
+    // เปลี่ยนสีปุ่ม
+    var buttons = document.querySelectorAll('.filter-area button')
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].classList.remove('active')
+    }
+    btn.classList.add('active')
+
+    var d = data[month]
+
+    // อัปเดต KPI
+    document.getElementById('kpi-revenue').textContent = d.revenue
+    document.getElementById('kpi-orders').textContent  = d.orders
+    document.getElementById('kpi-aov').textContent     = d.aov
+    document.getElementById('kpi-cancel').textContent  = d.cancel
+
+    // อัปเดตกราฟรายวัน
+    var startIndex = 0
+    var endIndex   = 90
+    if (month == 'apr') { startIndex = 0;  endIndex = 30 }
+    if (month == 'may') { startIndex = 30; endIndex = 61 }
+    if (month == 'jun') { startIndex = 61; endIndex = 90 }
+
+    chartDaily.data.labels = allDailyLabels.slice(startIndex, endIndex)
+    chartDaily.data.datasets[0].data = allDailyOrders.slice(startIndex, endIndex)
+    chartDaily.update()
+
+    // อัปเดตกราฟหมวดสินค้า
+    chartCat.data.datasets[0].data = d.catData
+    chartCat.update()
+
+    // อัปเดตกราฟสถานะ
+    chartStatus.data.datasets[0].data = d.statusData
+    chartStatus.update()
+  }
+
+</script>
+</body>
+</html>
